@@ -1,0 +1,18 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+.env
+.venv/
+venv/
+
+# Streamlit
+.streamlit/secrets.toml
+
+# Database lokal (dibuat otomatis saat app jalan)
+data/
+*.db
+
+# OS
+.DS_Store
+Thumbs.db

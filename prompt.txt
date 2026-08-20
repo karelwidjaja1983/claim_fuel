@@ -1,0 +1,100 @@
+# SYSTEM PROMPT FOR CURSOR AGENT: BENSIN & PARKIR DELIVERY CLAIM APP (STREAMLIT)
+
+## 1. APP OVERVIEW & PURPOSE
+You are tasked with building a Streamlit-based web application for calculating delivery team petrol (bensin) and parking (parkir) claims. 
+
+The application processes uploaded sales transaction Excel files, maps them against Master Rates using `Nama Panggilan` as the search key, and generates claim summaries per Shipper with export capabilities.
+
+---
+
+## 2. TECH STACK & REQUIREMENTS
+* **Framework:** Streamlit (latest version)
+* **Data Processing & Manipulation:** Pandas, OpenPyXL
+* **PDF Export:** ReportLab or FPDF2
+* **Storage:** Local SQLite database or CSV/Excel file persistence for Master Rates data (`Master_Tarif.xlsx` or `master_tarif.db`)
+* **UI Structure:** Multi-page app using Streamlit sidebar navigation (`st.sidebar.radio` or Streamlit multi-page `/pages` directory structure)
+
+---
+
+## 3. CORE FEATURES & MENU SPECIFICATIONS
+
+### Menu 1: Master Tarif (Master Rates Management)
+* **Purpose:** Manage the master list of delivery outlets, assigned shippers, and parking rates.
+* **Fields:**
+  * `NO` (Index/Auto-increment)
+  * `Nama Panggilan` (Outlet Short Name / Unique Join Key)[cite: 1]
+  * `Alamat Penagihan` (Billing Address)[cite: 1]
+  * `Shipper` (Delivery team member - Dropdown options: Yasir, Ical, Saddam)[cite: 1]
+  * `Tarif` (Parking rate in IDR - Numeric)[cite: 1]
+* **UI & Functionality:**
+  * Display Master Tarif data in an editable table using `st.data_editor` or `st.dataframe`.
+  * Action buttons placed **above the table**:
+    * **Upload Master Excel:** `st.file_uploader` to load and replace/merge master data from `Master_Tarif.xlsx`[cite: 1].
+    * **Add New / Edit / Save / Delete:** Form inputs (`st.form`) or direct `st.data_editor` modifications with a "Save Changes" button[cite: 1].
+  * Persist all CRUD changes locally so data remains updated across sessions[cite: 1].
+
+### Menu 2: Proses Claim (Transaction & Lookup Processing)
+* **Purpose:** Upload raw transaction files and map Shipper & Tarif details using `Nama Panggilan`[cite: 1].
+* **Input Transaction Data Structure (Raw Excel Upload):**
+  * Expected columns: `Tanggal`, `Tipe Transaksi`, `Nomor Transaksi`, `Nama Panggilan`, `Status Hari Ini`, `Memo`, `Total`, `Sisa Tagihan`[cite: 1].
+* **Processing Logic:**
+  1. Upload raw Sales Invoice Excel file via `st.file_uploader`[cite: 1].
+  2. Click `[Proses Claim]` button[cite: 1].
+  3. Perform Pandas `merge` or lookup on `Nama Panggilan` against `Master Tarif` to fetch `Shipper` and `Tarif`[cite: 1].
+* **Validation & Error Handling (Crucial):**
+  * **Missing Outlet Alert:** If a `Nama Panggilan` from the uploaded file does not exist in `Master Tarif`, display `st.error` / `st.warning`:
+    > *"Outlet '[Nama Panggilan]' tidak ditemukan di Master Tarif. Silakan tambahkan outlet baru di Menu Master Tarif terlebih dahulu agar dapat diproses ulang."*[cite: 1]
+  * **Incomplete Data Alert:** If any processed row has an empty `Shipper` or `Tarif`, display `st.error` / `st.warning`:
+    > *"Data tidak lengkap. Terdapat data Shipper atau Tarif yang kosong pada hasil proses. Silakan lengkapi data terlebih dahulu."*[cite: 1]
+* **Result Display:**
+  * Render processed dataframe containing: `Tanggal`, `Nomor Transaksi`, `Nama Panggilan`, `Status Hari Ini`, `Total`, `Sisa Tagihan`, `SHIPPER`, `Tarif`[cite: 1].
+  * Save processed data into `st.session_state` for use in the Rekap menu.
+
+### Menu 3: Rekap Claim (Claim Summary & PDF Export)
+* **Purpose:** Summarize petrol and parking claims per Shipper for a selected date range[cite: 1].
+* **Filter Controls:**
+  * Date range picker (`st.date_input`) for `Tanggal Awal` and `Tanggal Akhir`[cite: 1].
+  * Dynamically restrict date range options based on dates available in the uploaded transaction file (`Tanggal` column)[cite: 1].
+  * Automatically exclude rows where `Tanggal` is null or invalid[cite: 1].
+* **Calculation Rules:**
+  1. **Claim Bensin:** Calculated as **IDR 30,000 / day / Shipper** (counted for distinct working dates where the shipper has active deliveries within the date range)[cite: 1].
+  2. **Claim Parkir:** Sum of `Tarif` for all transactions served by that shipper within the date range[cite: 1].
+  3. **Total Claim:** `Claim Bensin` + `Claim Parkir`[cite: 1].
+  4. **Jumlah Outlet:** Total count of delivery transactions served by the shipper within the date range[cite: 1].
+* **Summary Table Format:**
+  * Columns: `Shipper`, `Bensin`, `Parkir`, `Total`, `Jumlah Outlet`[cite: 1].
+  * Include a **Total Summary Row** at the bottom aggregating Bensin, Parkir, Total, and Jumlah Outlet[cite: 1].
+  * Format numbers as currency (e.g., `Rp 30.000` or `30,000`)[cite: 1].
+* **PDF Export:**
+  * Provide an `[Export to PDF]` button (`st.download_button`) located **below the summary table**[cite: 1].
+  * Generate a clean PDF report summarizing the selected date range and the final Rekap table using ReportLab or FPDF2[cite: 1].
+
+---
+
+## 4. CODE STRUCTURE & FILE ORGANIZATION
+
+Please structure the project clearly as follows:
+
+```text
+├── app.py                      # Main entry point with sidebar navigation
+├── pages/
+│   ├── 1_Master_Tarif.py       # Master Tarif CRUD menu
+│   ├── 2_Proses_Claim.py       # File processing & lookup engine
+│   └── 3_Rekap_Claim.py        # Summary table & PDF exporter
+├── utils/
+│   ├── db_helper.py            # Local storage / SQLite management
+│   ├── processing.py           # Pandas mapping and validation logic
+│   └── pdf_generator.py        # ReportLab PDF building helper
+├── requirements.txt            # Dependencies (streamlit, pandas, openpyxl, reportlab)
+└── data/                       # Local data storage directory
+
+5. STEP-BY-STEP IMPLEMENTATION INSTRUCTIONS FOR CURSOR
+Step 1: Create requirements.txt and main layout structure in app.py with custom styling and sidebar navigation.
+
+Step 2: Implement pages/1_Master_Tarif.py with file upload (Master_Tarif.xlsx), st.data_editor, local persistence, and CRUD actions[cite: 1].
+
+Step 3: Implement pages/2_Proses_Claim.py with raw invoice file upload, Pandas mapping logic, error/warning banners for missing outlets, and dataframe preview[cite: 1].
+
+Step 4: Implement pages/3_Rekap_Claim.py with date range filtering, distinct-day Bensin calculation (30k/day), parking summation, total row, and PDF generation with st.download_button[cite: 1].
+
+Step 5: Test edge cases (missing dates, unknown outlets, empty rows) and refine UI formatting[cite: 1].
